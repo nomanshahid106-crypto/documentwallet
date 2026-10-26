@@ -1,0 +1,44 @@
+{
+  "expo": {
+    "name": "DocVault",
+    "slug": "docvault",
+    "scheme": "docvault",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "experiments": {
+      "typedRoutes": false
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow DocVault to scan your documents."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow DocVault to pick documents from your gallery."
+        }
+      ]
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.docvault.app"
+    },
+    "android": {
+      "package": "com.docvault.app",
+      "permissions": [
+        "CAMERA",
+        "USE_BIOMETRIC",
+        "USE_FINGERPRINT"
+      ]
+    }
+  }
+}

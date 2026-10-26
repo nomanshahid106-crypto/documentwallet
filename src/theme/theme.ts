@@ -1,0 +1,4 @@
+export interface ThemeColors { bg: string; surface: string; card: string; text: string; muted: string; border: string; primaryBg: string; primaryText: string; inputBg: string; chipActiveBg: string; chipActiveText: string; danger: string; success: string }
+export const lightColors: ThemeColors = { bg:'#FFFFFF', surface:'#FFFFFF', card:'#F7F7F7', text:'#000000', muted:'#6B7280', border:'#E5E5E5', primaryBg:'#000000', primaryText:'#FFFFFF', inputBg:'#FFFFFF', chipActiveBg:'#000000', chipActiveText:'#FFFFFF', danger:'#DC2626', success:'#16A34A' };
+export const darkColors: ThemeColors = { bg:'#121212', surface:'#121212', card:'#1E1E1E', text:'#FFFFFF', muted:'#9CA3AF', border:'#2C2C2C', primaryBg:'#FFFFFF', primaryText:'#000000', inputBg:'#1E1E1E', chipActiveBg:'#FFFFFF', chipActiveText:'#000000', danger:'#F87171', success:'#4ADE80' };
+export type ThemePreference = 'light' | 'dark' | 'system';
