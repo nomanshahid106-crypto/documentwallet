@@ -11,11 +11,11 @@ React Native (Expo SDK 52, RN 0.76, TypeScript strict) + Expo Router 4 · Supaba
 
 ## Setup
 1. Install dependencies: `npm install`
-2. Create a Supabase project (below), then copy `.env.example` to `.env` and fill in:
+2. The connected Supabase project's URL and publishable (anon) key are embedded in `src/lib/supabase.ts` as fallbacks, so the app works out of the box with no `.env`. To point the app at a *different* Supabase project, copy `.env.example` to `.env` and fill in:
    - `EXPO_PUBLIC_SUPABASE_URL` — Project Settings → API → Project URL
-   - `EXPO_PUBLIC_SUPABASE_ANON_KEY` — Project Settings → API → anon public key
-   - **Never** put the `service_role` key in the app, the `.env`, or anywhere in this repo.
-3. Run: `npx expo start` (then open in Expo Go / a dev build). Without a `.env`, the app still opens and every backend screen shows a clear "Backend not configured — see README" state.
+   - `EXPO_PUBLIC_SUPABASE_ANON_KEY` — Project Settings → API → anon / publishable key
+   - The URL and publishable key are public client credentials by design; data is protected by Row Level Security. **Never** put the `service_role` / secret key in the app, the `.env`, or anywhere in this repo.
+3. Run: `npx expo start -c` (then open in Expo Go / a dev build). The `-c` clears Metro's cache so env/config changes are picked up.
 
 ## Supabase project creation
 1. Go to supabase.com → New project (sign in yourself; no credentials are ever shared in chat).

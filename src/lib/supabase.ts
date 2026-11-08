@@ -1,8 +1,18 @@
 import 'react-native-url-polyfill/auto';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import * as SecureStore from 'expo-secure-store';
-const url = process.env.EXPO_PUBLIC_SUPABASE_URL ?? '';
-const anon = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? '';
+// The Supabase URL and publishable (anon) key are PUBLIC client credentials by design —
+// they ship inside every app bundle anyway, and all data access is enforced server-side
+// by Row Level Security. They are embedded here as fallbacks so a fresh clone or an
+// Expo Go run works without a .env file. A .env (EXPO_PUBLIC_SUPABASE_URL /
+// EXPO_PUBLIC_SUPABASE_ANON_KEY) still overrides them, e.g. to point at another project.
+// The service_role / secret key must NEVER be put here or anywhere in the app.
+const FALLBACK_URL = 'https://vxumtvxfqxtemnszaahk.supabase.co';
+const FALLBACK_ANON_KEY = 'sb_publishable_u32hlsK3fAbx7D3W22eWgw_XoLpJM2g';
+const envUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
+const envAnon = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+const url = envUrl && envUrl.startsWith('http') ? envUrl : FALLBACK_URL;
+const anon = envAnon && !envAnon.includes('your-') ? envAnon : FALLBACK_ANON_KEY;
 export const isConfigured = Boolean(url && anon);
 // NOTE: Supabase sessions can exceed SecureStore's per-value limit on some devices;
 // this adapter is the documented Expo pattern and stores the session encrypted at rest.
