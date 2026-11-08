@@ -16,6 +16,6 @@ export default function Search() {
       <Pressable onPress={() => router.back()} style={{ marginRight: 10 }}><Text style={{ color: colors.text, fontSize: 20 }}>←</Text></Pressable>
       <View style={{ flex: 1 }}><Field icon="search-outline" placeholder="Search by name, code or folder…" autoFocus value={q} onChangeText={setQ} /></View></View>
     {!isConfigured ? <ConfigBanner /> : null}<ErrorText text={err} />
-    {loading ? <Loading /> : <FlatList data={shown} keyExtractor={d => d.id} ListEmptyComponent={<EmptyState title="No matches" subtitle="Try a file name, its code (e.g. A7F3-9K2D) or a folder name." />} renderItem={({ item }) => <DocRow doc={item} onPress={() => router.push(`/document/${item.id}`)} />} />}
+    {loading ? <Loading /> : <FlatList data={shown} keyExtractor={d => d.id} ListEmptyComponent={<EmptyState title="No matches" subtitle="Try a file name, its code (e.g. A7F3-9K2D) or a folder name." />} renderItem={({ item, index }) => <DocRow doc={item} index={index} onPress={() => router.push(`/document/${item.id}`)} />} />}
   </Screen>;
 }

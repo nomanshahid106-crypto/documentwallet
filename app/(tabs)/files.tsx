@@ -25,14 +25,14 @@ export default function Files() {
       <Pressable onPress={() => setGrid(!grid)}><Text style={{ color: colors.text, fontSize: 18 }}>{grid ? '☰' : '▦'}</Text></Pressable></View>
     {folder ? <Pressable onPress={() => setFolder(undefined)} style={{ marginTop: 8 }}><Text style={{ color: colors.muted, fontSize: 13 }}>✕ Clear folder filter ({folder})</Text></Pressable> : null}
     <View style={{ flexDirection: 'row', marginVertical: 12 }}>{CHIPS.map(c => <Chip key={c} label={c} active={chip === c} onPress={() => setChip(c)} />)}</View>
-    <View style={{ flexDirection: 'row', marginBottom: 8 }}>{FOLDERS.map(f => <Chip key={f} label={f} active={folder === f} onPress={() => setFolder(folder === f ? undefined : f)} />)}</View>
+    <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginBottom: 8 }}>{FOLDERS.map(f => <View key={f} style={{ marginBottom: 8 }}><Chip label={f} active={folder === f} onPress={() => setFolder(folder === f ? undefined : f)} /></View>)}</View>
     {!isConfigured ? <ConfigBanner /> : null}<ErrorText text={err} />
     {loading ? <Loading /> : shown.length === 0 ? <EmptyState title="Nothing here yet" subtitle="Documents you upload will appear here." /> :
     <FlatList data={shown} key={grid ? 'g' : 'l'} numColumns={grid ? 2 : 1} keyExtractor={d => d.id}
-      renderItem={({ item }) => grid
+      renderItem={({ item, index }) => grid
         ? <Pressable onPress={() => router.push(`/document/${item.id}`)} style={{ flex: 1, margin: 6, borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: 14, backgroundColor: colors.surface }}>
             <FileBadge ext={item.file_type} size={46} /><Text style={{ color: colors.text, fontWeight: '600', marginTop: 10 }} numberOfLines={2}>{item.name}</Text>
             <Text style={{ color: colors.muted, fontSize: 11, marginTop: 3 }}>{formatBytes(item.size_bytes)} • {formatDate(item.created_at)}</Text></Pressable>
-        : <DocRow doc={item} onPress={() => router.push(`/document/${item.id}`)} />} />}
+        : <DocRow doc={item} index={index} onPress={() => router.push(`/document/${item.id}`)} />} />}
   </Screen>;
 }

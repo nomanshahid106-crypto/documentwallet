@@ -1,5 +1,5 @@
 import React from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Animated, Easing, Pressable, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Screen, PrimaryButton } from '../src/components/ui';
 import { useTheme } from '../src/context/ThemeContext';
@@ -7,8 +7,16 @@ import { useAuth } from '../src/context/AuthContext';
 export default function Welcome() {
   const { colors } = useTheme(); const router = useRouter(); const { session } = useAuth();
   React.useEffect(() => { if (session) router.replace('/(tabs)'); }, [session]);
+  // Logo entrance: gentle scale 0.9 → 1 with fade-in, once on mount.
+  const logoAnim = React.useRef(new Animated.Value(0)).current;
+  React.useEffect(() => {
+    const anim = Animated.timing(logoAnim, { toValue: 1, duration: 380, easing: Easing.out(Easing.cubic), useNativeDriver: true });
+    anim.start();
+    return () => anim.stop();
+  }, [logoAnim]);
+  const logoScale = logoAnim.interpolate({ inputRange: [0, 1], outputRange: [0.9, 1] });
   return <Screen><View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-    <View style={{ width: 84, height: 84, borderWidth: 2.5, borderColor: colors.text, borderRadius: 18, alignItems: 'center', justifyContent: 'center' }}><Text style={{ fontSize: 38 }}>🗂️</Text></View>
+    <Animated.View style={{ width: 84, height: 84, borderWidth: 2.5, borderColor: colors.text, borderRadius: 18, alignItems: 'center', justifyContent: 'center', opacity: logoAnim, transform: [{ scale: logoScale }] }}><Text style={{ fontSize: 38 }}>🗂️</Text></Animated.View>
     <Text style={{ color: colors.text, fontSize: 30, fontWeight: '800', marginTop: 22 }}>DocVault</Text>
     <Text style={{ color: colors.muted, fontSize: 15, marginTop: 8 }}>Your Documents, Always Safe</Text>
     <Text style={{ color: colors.muted, fontSize: 12, marginTop: 6 }}>Save  •  Organize  •  Access Anywhere</Text></View>

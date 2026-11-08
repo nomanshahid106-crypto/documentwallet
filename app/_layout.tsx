@@ -2,6 +2,7 @@ import React from 'react';
 import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ThemeProvider, useTheme } from '../src/context/ThemeContext';
 import { AuthProvider, useAuth } from '../src/context/AuthContext';
 import { isConfigured } from '../src/lib/supabase';
@@ -30,6 +31,6 @@ function Gate() {
     </Stack></>;
 }
 export default function RootLayout() {
-  return <ThemeProvider><AuthProvider><Gate /></AuthProvider></ThemeProvider>;
+  return <SafeAreaProvider><ThemeProvider><AuthProvider><Gate /></AuthProvider></ThemeProvider></SafeAreaProvider>;
 }
 export { isConfigured };

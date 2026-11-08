@@ -2,6 +2,7 @@ import * as FileSystem from 'expo-file-system';
 import { supabase, isConfigured, NOT_CONFIGURED_MSG } from '../lib/supabase';
 import { generateDocCode } from '../lib/docCode';
 import { validateFile } from '../lib/validation';
+import { decodeBase64 } from '../lib/base64';
 export interface DocumentItem { id: string; owner_id: string; doc_code: string; name: string; category: string; file_type: string; mime_type: string; size_bytes: number; storage_path: string; created_at: string; updated_at: string }
 export const BUCKET = 'user-documents';
 function requireClient() { if (!isConfigured || !supabase) throw new Error(NOT_CONFIGURED_MSG); return supabase; }
@@ -35,19 +36,21 @@ export function folderCounts(docs: DocumentItem[], folders: readonly string[]): 
   for (const d of docs) if (d.category in out) out[d.category]++;
   return out;
 }
-function decodeBase64(b64: string): Uint8Array {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
-  const clean = b64.replace(/[^A-Za-z0-9+/=]/g, '');
-  const bytes: number[] = []; let buf = 0; let bits = 0;
-  for (const ch of clean) { if (ch === '=') break; const v = chars.indexOf(ch); if (v < 0) continue; buf = (buf << 6) | v; bits += 6; if (bits >= 8) { bits -= 8; bytes.push((buf >> bits) & 0xff); } }
-  return new Uint8Array(bytes);
-}
 export type UploadState = 'validating' | 'uploading' | 'saving' | 'done' | 'error';
 export interface UploadInput { uri: string; name: string; sizeBytes: number; mimeType: string; category: string }
 export async function uploadDocument(input: UploadInput, onState?: (s: UploadState) => void): Promise<DocumentItem> {
   try {
     onState?.('validating');
-    const v = validateFile({ name: input.name, sizeBytes: input.sizeBytes, mimeType: input.mimeType });
+    // Pickers often report no size (DocumentPicker `size` can be undefined).
+    // Resolve the real size from the file system before validating, otherwise
+    // a valid file is rejected as "empty".
+    let sizeBytes = input.sizeBytes;
+    if (!sizeBytes || sizeBytes <= 0) {
+      const info = await FileSystem.getInfoAsync(input.uri);
+      if (!info.exists) throw new Error('That file could not be found on this device. Please pick it again.');
+      sizeBytes = (info as any).size ?? 0;
+    }
+    const v = validateFile({ name: input.name, sizeBytes, mimeType: input.mimeType });
     if (!v.ok) throw new Error(v.error);
     const sb = requireClient();
     const userId = await currentUserId();
@@ -57,10 +60,12 @@ export async function uploadDocument(input: UploadInput, onState?: (s: UploadSta
     onState?.('uploading');
     const b64 = await FileSystem.readAsStringAsync(input.uri, { encoding: FileSystem.EncodingType.Base64 });
     const bytes = decodeBase64(b64);
+    // Final sanity check on the actual payload being uploaded.
+    if (bytes.length === 0) throw new Error('File appears empty.');
     const { error: upErr } = await sb.storage.from(BUCKET).upload(storagePath, bytes, { contentType: input.mimeType, upsert: false });
     if (upErr) throw new Error(upErr.message);
     onState?.('saving');
-    const row = { owner_id: userId, doc_code: generateDocCode(), name: input.name, category: input.category, file_type: v.extension, mime_type: input.mimeType, size_bytes: input.sizeBytes, storage_path: storagePath };
+    const row = { owner_id: userId, doc_code: generateDocCode(), name: input.name, category: input.category, file_type: v.extension, mime_type: input.mimeType, size_bytes: bytes.length, storage_path: storagePath };
     const { data, error } = await sb.from('documents').insert(row).select('*').single();
     if (error) { await sb.storage.from(BUCKET).remove([storagePath]).catch(() => {}); throw new Error(error.message); }
     onState?.('done');

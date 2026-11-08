@@ -32,10 +32,10 @@ export default function Home() {
     <View style={{ flexDirection: 'row', marginTop: 14 }}>{CHIPS.map(c => <Chip key={c} label={c} active={chip === c} onPress={() => setChip(c)} />)}</View>
     {!isConfigured ? <View style={{ marginTop: 14 }}><ConfigBanner /></View> : null}
     <ErrorText text={err} />
-    <View style={{ marginTop: 10 }}>{FOLDERS.map(f => <FolderRow key={f} name={f} count={counts[f] ?? 0} onPress={() => router.push({ pathname: '/(tabs)/files', params: { folder: f } })} />)}</View>
+    <View style={{ marginTop: 10 }}>{FOLDERS.map((f, i) => <FolderRow key={f} index={i} name={f} count={counts[f] ?? 0} onPress={() => router.push({ pathname: '/(tabs)/files', params: { folder: f } })} />)}</View>
     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 20 }}>
       <Text style={{ color: colors.text, fontSize: 16, fontWeight: '700' }}>Recent Files</Text>
       <Pressable onPress={() => router.push('/(tabs)/files')}><Text style={{ color: colors.muted, fontSize: 13 }}>See all</Text></Pressable></View>
-    {loading ? <Loading /> : recent.length === 0 ? <EmptyState title="No documents yet" subtitle="Tap + to upload your first document." /> : recent.map(d => <DocRow key={d.id} doc={d} onPress={() => router.push(`/document/${d.id}`)} />)}
+    {loading ? <Loading /> : recent.length === 0 ? <EmptyState title="No documents yet" subtitle="Tap + to upload your first document." /> : recent.map((d, i) => <DocRow key={d.id} index={i} doc={d} onPress={() => router.push(`/document/${d.id}`)} />)}
   </ScrollView></Screen>;
 }
