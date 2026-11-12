@@ -20,6 +20,7 @@ export default function Add() {
   const [picked, setPicked] = useState<Picked | null>(params.scannedUri ? { uri: params.scannedUri, name: 'Scanned Document.jpg', sizeBytes: 0, mimeType: 'image/jpeg' } : null);
   const [folder, setFolder] = useState<string>('Personal'); const [state, setState] = useState<UploadState | null>(null);
   const [err, setErr] = useState<string | null>(null); const [done, setDone] = useState(false);
+  const [savedLocally, setSavedLocally] = useState(false);
   // Gentle pulse on the upload icon while an upload is in flight.
   const pulse = React.useRef(new Animated.Value(1)).current;
   React.useEffect(() => {
@@ -49,12 +50,21 @@ export default function Add() {
   }
   async function upload() {
     if (!picked) { setErr('Choose a file, photo or scan first.'); return; }
-    setErr(null); setDone(false);
+    setErr(null); setDone(false); setSavedLocally(false);
     try {
-      await uploadDocument({ uri: picked.uri, name: picked.name, sizeBytes: picked.sizeBytes, mimeType: picked.mimeType, category: folder }, setState);
-      // Brief success state on the button, then the usual confirmation + navigation.
+      const doc = await uploadDocument({ uri: picked.uri, name: picked.name, sizeBytes: picked.sizeBytes, mimeType: picked.mimeType, category: folder }, setState);
+      // The document is always saved on this phone first. If it couldn't be
+      // uploaded yet (offline / upload failed), say so honestly — it will
+      // upload automatically when the connection returns.
+      const localOnly = doc.syncStatus !== 'synced';
+      setSavedLocally(localOnly);
+      // Brief success state on the button, then the confirmation + navigation.
       setDone(true);
-      setTimeout(() => { Alert.alert('Uploaded', 'Your document is saved and synced.'); router.replace('/(tabs)/files'); }, 900);
+      setTimeout(() => {
+        if (localOnly) Alert.alert('Saved on this phone', 'No internet right now — your document is saved on this phone and will upload automatically when you\'re back online.');
+        else Alert.alert('Uploaded', 'Your document is saved and synced.');
+        router.replace('/(tabs)/files');
+      }, 900);
     }
     catch (e: any) { setErr(e.message); }
   }
@@ -78,8 +88,8 @@ export default function Add() {
     <Text style={{ color: colors.text, fontWeight: '600', marginTop: 16, marginBottom: 8 }}>Folder</Text>
     <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>{FOLDERS.map(f => <View key={f} style={{ marginBottom: 8 }}><Chip label={f} active={folder === f} onPress={() => setFolder(f)} /></View>)}</View>
     {state ? <ProgressBar value={progress} /> : null}
-    {state ? <Text style={{ color: colors.muted, fontSize: 12, textTransform: done ? 'none' : 'capitalize' }}>{done ? 'Uploaded ✓' : `${state}…`}</Text> : null}
+    {state ? <Text style={{ color: colors.muted, fontSize: 12, textTransform: done ? 'none' : 'capitalize' }}>{done ? (savedLocally ? 'Saved on this phone ✓' : 'Uploaded ✓') : `${state}…`}</Text> : null}
     <ErrorText text={err} />
-    <PrimaryButton title={done ? 'Uploaded ✓' : state === 'error' ? 'Retry Upload' : 'Upload Document'} onPress={upload} disabled={done} loading={state === 'uploading' || state === 'saving'} />
+    <PrimaryButton title={done ? (savedLocally ? 'Saved on this phone ✓' : 'Uploaded ✓') : state === 'error' ? 'Retry Upload' : 'Upload Document'} onPress={upload} disabled={done} loading={state === 'uploading' || state === 'saving'} />
   </ScrollView></Screen>;
 }

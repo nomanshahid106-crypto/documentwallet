@@ -4,13 +4,13 @@ import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { Screen, Chip, DocRow, EmptyState, Loading, ErrorText, FileBadge, ConfigBanner } from '../../src/components/ui';
 import { useTheme } from '../../src/context/ThemeContext';
 import { isConfigured } from '../../src/lib/supabase';
-import { listDocuments, DocumentItem } from '../../src/services/documents';
+import { listDocuments, onDocsChanged, LocalDocument } from '../../src/services/documents';
 import { filterDocuments, ChipFilter } from '../../src/lib/search';
 import { formatBytes, formatDate, FOLDERS } from '../../src/lib/format';
 const CHIPS: ChipFilter[] = ['All','Documents','Images','PDFs'];
 export default function Files() {
   const { colors } = useTheme(); const router = useRouter(); const params = useLocalSearchParams<{ folder?: string }>();
-  const [docs, setDocs] = useState<DocumentItem[]>([]); const [chip, setChip] = useState<ChipFilter>('All');
+  const [docs, setDocs] = useState<LocalDocument[]>([]); const [chip, setChip] = useState<ChipFilter>('All');
   const [folder, setFolder] = useState<string | undefined>(params.folder); const [grid, setGrid] = useState(false);
   const [loading, setLoading] = useState(true); const [err, setErr] = useState<string | null>(null);
   const load = useCallback(async () => {
@@ -18,6 +18,8 @@ export default function Files() {
     try { setErr(null); setDocs(await listDocuments()); } catch (e: any) { setErr(e.message); } finally { setLoading(false); }
   }, []);
   useFocusEffect(useCallback(() => { if (params.folder) setFolder(params.folder); load(); }, [load, params.folder]));
+  // Live updates: background refresh / finished uploads push the new list in.
+  React.useEffect(() => onDocsChanged(setDocs), []);
   const shown = filterDocuments(docs, '', chip, folder);
   return <Screen>
     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -32,7 +34,9 @@ export default function Files() {
       renderItem={({ item, index }) => grid
         ? <Pressable onPress={() => router.push(`/document/${item.id}`)} style={{ flex: 1, margin: 6, borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: 14, backgroundColor: colors.surface }}>
             <FileBadge ext={item.file_type} size={46} /><Text style={{ color: colors.text, fontWeight: '600', marginTop: 10 }} numberOfLines={2}>{item.name}</Text>
-            <Text style={{ color: colors.muted, fontSize: 11, marginTop: 3 }}>{formatBytes(item.size_bytes)} • {formatDate(item.created_at)}</Text></Pressable>
+            <Text style={{ color: colors.muted, fontSize: 11, marginTop: 3 }}>{formatBytes(item.size_bytes)} • {formatDate(item.created_at)}</Text>
+            {item.syncStatus === 'pending' ? <Text style={{ color: colors.muted, fontSize: 10, marginTop: 2 }}>On this phone — pending</Text> : null}
+            {item.syncStatus === 'failed' ? <Text style={{ color: colors.danger, fontSize: 10, marginTop: 2 }}>Upload failed — will retry</Text> : null}</Pressable>
         : <DocRow doc={item} index={index} onPress={() => router.push(`/document/${item.id}`)} />} />}
   </Screen>;
 }

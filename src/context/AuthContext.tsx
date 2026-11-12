@@ -3,6 +3,7 @@ import { Session, User } from '@supabase/supabase-js';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as LocalAuthentication from 'expo-local-authentication';
 import { supabase, isConfigured } from '../lib/supabase';
+import { syncPending } from '../services/documents';
 const BIO_KEY = 'docvault-biometric-enabled';
 interface Ctx { session: Session | null; user: User | null; loading: boolean; biometricEnabled: boolean; locked: boolean; setBiometricEnabled: (b: boolean) => Promise<void>; unlock: () => Promise<boolean>; signOut: () => Promise<void> }
 const AuthCtx = createContext<Ctx>({ session: null, user: null, loading: true, biometricEnabled: false, locked: false, setBiometricEnabled: async () => {}, unlock: async () => true, signOut: async () => {} });
@@ -14,8 +15,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     AsyncStorage.getItem(BIO_KEY).then(v => { const on = v === '1'; setBio(on); }).catch(() => {});
     if (!supabase) { setLoading(false); return; }
-    supabase.auth.getSession().then(({ data }) => { setSession(data.session); setLoading(false); if (data.session) AsyncStorage.getItem(BIO_KEY).then(v => setLocked(v === '1')).catch(() => {}); });
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => setSession(s));
+    supabase.auth.getSession().then(({ data }) => { setSession(data.session); setLoading(false); if (data.session) { AsyncStorage.getItem(BIO_KEY).then(v => setLocked(v === '1')).catch(() => {}); void syncPending().catch(() => {}); } });
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => { setSession(s); if (s) void syncPending().catch(() => {}); });
     return () => sub.subscription.unsubscribe();
   }, []);
   const setBiometricEnabled = async (b: boolean) => { setBio(b); await AsyncStorage.setItem(BIO_KEY, b ? '1' : '0'); if (!b) setLocked(false); };

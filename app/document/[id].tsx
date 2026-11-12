@@ -7,28 +7,43 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Screen, FileBadge, PrimaryButton, GhostButton, Loading, ErrorText } from '../../src/components/ui';
 import { useTheme } from '../../src/context/ThemeContext';
-import { getDocument, getSignedUrl, renameDocument, deleteDocument, DocumentItem } from '../../src/services/documents';
+import { getDocument, getSignedUrl, getReadableUri, renameDocument, deleteDocument, LocalDocument } from '../../src/services/documents';
 import { formatBytes, formatDate, fileTypeLabel } from '../../src/lib/format';
 const IMAGE_EXTS = ['jpg','jpeg','png','webp','heic'];
 export default function DocumentDetails() {
   const { colors } = useTheme(); const router = useRouter(); const { id } = useLocalSearchParams<{ id: string }>();
-  const [doc, setDoc] = useState<DocumentItem | null>(null); const [url, setUrl] = useState<string | null>(null);
+  const [doc, setDoc] = useState<LocalDocument | null>(null); const [url, setUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true); const [err, setErr] = useState<string | null>(null); const [newName, setNewName] = useState('');
+  const [onPhone, setOnPhone] = useState(false);
   const load = useCallback(async () => {
-    try { const d = await getDocument(id); setDoc(d); setNewName(d?.name ?? ''); if (d && IMAGE_EXTS.includes(d.file_type)) setUrl(await getSignedUrl(d.storage_path)); }
+    try {
+      const d = await getDocument(id); setDoc(d); setNewName(d?.name ?? '');
+      if (d) {
+        // "Saved on this phone" = a local file copy that still exists.
+        let saved = false;
+        if (d.localUri) { try { saved = (await FileSystem.getInfoAsync(d.localUri)).exists; } catch { saved = false; } }
+        setOnPhone(saved);
+        if (IMAGE_EXTS.includes(d.file_type)) {
+          // Preview from the on-phone copy when there is one; otherwise a
+          // short-lived signed URL (falling back to the local copy offline).
+          if (saved && d.localUri) setUrl(d.localUri);
+          else if (d.storage_path) { try { setUrl(await getSignedUrl(d.storage_path)); } catch { if (d.localUri) setUrl(d.localUri); } }
+        }
+      }
+    }
     catch (e: any) { setErr(e.message); } finally { setLoading(false); }
   }, [id]);
   useEffect(() => { load(); }, [load]);
   async function downloadOrShare(share: boolean) {
     if (!doc) return;
-    try { const signed = await getSignedUrl(doc.storage_path, 300); const dest = `${FileSystem.cacheDirectory}${doc.doc_code}-${doc.name.replace(/[^\w.\-]+/g, '_')}`;
-      const dl = await FileSystem.downloadAsync(signed, dest);
-      if (share) { if (await Sharing.isAvailableAsync()) await Sharing.shareAsync(dl.uri); else Alert.alert('Sharing not available', 'Sharing is not available on this device.'); }
-      else Alert.alert('Downloaded', `Saved to app cache:\n${dl.uri}\nUse Share to send it to Files, Drive or any app.`); }
+    try { const uri = await getReadableUri(doc);
+      setOnPhone(true); // it is definitely on this phone now (cached by getReadableUri)
+      if (share) { if (await Sharing.isAvailableAsync()) await Sharing.shareAsync(uri); else Alert.alert('Sharing not available', 'Sharing is not available on this device.'); }
+      else Alert.alert('Saved on this phone', `This document is saved on this phone and available offline:\n${uri}\nUse Share to send it to Files, Drive or any app.`); }
     catch (e: any) { setErr(e.message); }
   }
   async function rename() { if (!doc) return; try { await renameDocument(doc.id, newName); setDoc({ ...doc, name: newName.trim() }); Alert.alert('Renamed', 'Document name updated.'); } catch (e: any) { setErr(e.message); } }
-  function confirmDelete() { if (!doc) return; Alert.alert('Delete document?', `"${doc.name}" will be deleted from the cloud and all your devices.`, [
+  function confirmDelete() { if (!doc) return; Alert.alert('Delete document?', doc.storage_path ? `"${doc.name}" will be deleted from the cloud and all your devices.` : `"${doc.name}" has not uploaded yet. Delete it from this phone?`, [
     { text: 'Cancel', style: 'cancel' }, { text: 'Delete', style: 'destructive', onPress: async () => { try { await deleteDocument(doc); router.replace('/(tabs)/files'); } catch (e: any) { setErr(e.message); } } } ]); }
   if (loading) return <Screen><Loading /></Screen>;
   if (!doc) return <Screen><ErrorText text={err ?? 'Document not found.'} /><GhostButton title="Back" onPress={() => router.back()} /></Screen>;
@@ -52,6 +67,8 @@ export default function DocumentDetails() {
       <Action icon="ellipsis-horizontal" label="More" onPress={confirmDelete} /></View>
     <Row k="File Name" v={doc.name} /><Row k="Type" v={fileTypeLabel(doc.file_type)} /><Row k="Size" v={formatBytes(doc.size_bytes)} />
     <Row k="Date Added" v={formatDate(doc.created_at)} /><Row k="Code" v={doc.doc_code} /><Row k="Folder" v={doc.category} />
+    <Row k="Sync" v={doc.syncStatus === 'synced' ? 'Synced' : doc.syncStatus === 'failed' ? 'Upload failed — will retry automatically' : 'Waiting for internet'} />
+    <Row k="Saved on this phone" v={onPhone ? 'Yes' : 'No'} />
     <PrimaryButton title="Copy Code" onPress={async () => { await Clipboard.setStringAsync(doc.doc_code); Alert.alert('Copied', `Code ${doc.doc_code} copied.`); }} />
     <Text style={{ color: colors.text, fontWeight: '600', marginTop: 16, marginBottom: 6 }}>Rename</Text>
     <TextInput value={newName} onChangeText={setNewName} placeholderTextColor={colors.muted} style={{ borderWidth: 1, borderColor: colors.border, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 12, color: colors.text, backgroundColor: colors.inputBg }} />

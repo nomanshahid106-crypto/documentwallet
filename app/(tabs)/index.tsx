@@ -5,19 +5,21 @@ import { Ionicons } from '@expo/vector-icons';
 import { Screen, Chip, DocRow, FolderRow, EmptyState, Loading, ErrorText, ConfigBanner } from '../../src/components/ui';
 import { useTheme } from '../../src/context/ThemeContext';
 import { isConfigured } from '../../src/lib/supabase';
-import { listDocuments, folderCounts, DocumentItem } from '../../src/services/documents';
+import { listDocuments, folderCounts, onDocsChanged, LocalDocument } from '../../src/services/documents';
 import { filterDocuments, ChipFilter } from '../../src/lib/search';
 import { FOLDERS } from '../../src/lib/format';
 const CHIPS: ChipFilter[] = ['All','Documents','Images','PDFs'];
 export default function Home() {
   const { colors } = useTheme(); const router = useRouter();
-  const [docs, setDocs] = useState<DocumentItem[]>([]); const [chip, setChip] = useState<ChipFilter>('All');
+  const [docs, setDocs] = useState<LocalDocument[]>([]); const [chip, setChip] = useState<ChipFilter>('All');
   const [loading, setLoading] = useState(true); const [err, setErr] = useState<string | null>(null); const [refreshing, setRefreshing] = useState(false);
   const load = useCallback(async () => {
     if (!isConfigured) { setLoading(false); return; }
     try { setErr(null); setDocs(await listDocuments()); } catch (e: any) { setErr(e.message); } finally { setLoading(false); setRefreshing(false); }
   }, []);
   useFocusEffect(useCallback(() => { load(); }, [load]));
+  // Live updates: background refresh / finished uploads push the new list in.
+  React.useEffect(() => onDocsChanged(setDocs), []);
   const counts = folderCounts(docs, FOLDERS);
   const recent = filterDocuments(docs, '', chip).slice(0, 5);
   return <Screen><ScrollView refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(); }} />}>

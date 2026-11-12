@@ -40,6 +40,16 @@ React Native (Expo SDK 52, RN 0.76, TypeScript strict) + Expo Router 4 · Supaba
 - [ ] Sign out on B → confirm you are returned to Login and cannot open any document
 - [ ] Create a second account → confirm none of the first account's documents are visible (RLS)
 
+## Offline & sync
+DocVault is **offline-first**: the phone is not just a window onto the cloud, it keeps its own copy of everything.
+
+- **Saved on the phone first.** When you add a document, the file is copied into the app's own storage and recorded in a local index (AsyncStorage) *before* anything is uploaded. A document added with no internet is fully saved — it shows in Home, Files and Search with an "On this phone — will upload when online" note.
+- **Full offline use.** Lists, folders, search and details all work with no connection. A document whose file is on the phone opens, previews and shares offline. Synced documents you open or download are also kept on the phone, so they work offline afterwards. (A document that exists only in the cloud and was never opened on this phone needs one online visit to fetch it.)
+- **Automatic upload.** A background sync engine watches the connection: when the internet comes back, when the app returns to the foreground, when you sign in, or when you tap **Sync Now** on the Cloud tab, everything queued — uploads, renames and deletes — is pushed to Supabase. Failed uploads are marked and retried automatically.
+- **Coming back online merges, never overwrites carelessly.** When the server list refreshes, it is merged with the local index: new documents from your other devices appear, documents deleted elsewhere disappear, and anything still waiting to upload (or renamed offline) is preserved.
+- **Cloud tab shows the truth.** Connection (Online/Offline), how many documents are synced, how many are pending, when the last successful sync happened, and a Sync Now button.
+- **Deleting offline works too.** The document disappears immediately and the cloud copy is deleted on the next sync.
+
 ## Security model
 - **Access:** Supabase Auth (email/password, password reset by email, optional Google). Every document row and storage object is restricted by Row Level Security / storage policies to its owner (`auth.uid()`). Other users cannot list, read, update or delete your files.
 - **File access:** files live in a **private** bucket — there are no public URLs. The app opens/previews/downloads through **short-lived signed URLs** (60 s for preview, 5 min for an explicit download/share).

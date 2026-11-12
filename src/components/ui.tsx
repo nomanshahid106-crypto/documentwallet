@@ -3,7 +3,7 @@ import { ActivityIndicator, Animated, Easing, Pressable, StyleSheet, Text, TextI
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../context/ThemeContext';
-import type { DocumentItem } from '../services/documents';
+import type { LocalDocument } from '../lib/localStore';
 import { formatBytes, formatDate } from '../lib/format';
 
 // ---------- Animation helpers (built-in Animated API only) ----------
@@ -114,13 +114,15 @@ export function FileBadge({ ext, size = 40 }: { ext: string; size?: number }) {
   return <View style={{ width: size, height: size, borderRadius: 8, backgroundColor: isPdf ? '#FEE2E2' : '#DBEAFE', alignItems: 'center', justifyContent: 'center' }}>
     <Text style={{ fontSize: size * 0.32 }}>{isPdf ? '📄' : '🖼️'}</Text></View>;
 }
-export function DocRow({ doc, onPress, index }: { doc: DocumentItem; onPress: () => void; index?: number }) {
+export function DocRow({ doc, onPress, index }: { doc: LocalDocument; onPress: () => void; index?: number }) {
   const { colors } = useTheme();
   return <Entrance index={index}>
     <Pressable onPress={onPress} style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', paddingVertical: 10, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border, transform: [{ scale: pressed ? 0.98 : 1 }] })}>
       <FileBadge ext={doc.file_type} /><View style={{ flex: 1, marginLeft: 12 }}>
         <Text style={{ color: colors.text, fontSize: 15, fontWeight: '500' }} numberOfLines={1}>{doc.name}</Text>
         <Text style={{ color: colors.muted, fontSize: 12, marginTop: 2 }}>{formatBytes(doc.size_bytes)}  •  {formatDate(doc.created_at)}</Text>
+        {doc.syncStatus === 'pending' ? <Text style={{ color: colors.muted, fontSize: 11, marginTop: 2 }}>On this phone — will upload when online</Text> : null}
+        {doc.syncStatus === 'failed' ? <Text style={{ color: colors.danger, fontSize: 11, marginTop: 2 }}>Upload failed — will retry automatically</Text> : null}
       </View><Ionicons name="chevron-forward" size={16} color={colors.muted} /></Pressable>
   </Entrance>;
 }

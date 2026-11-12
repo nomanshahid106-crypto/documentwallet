@@ -6,6 +6,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ThemeProvider, useTheme } from '../src/context/ThemeContext';
 import { AuthProvider, useAuth } from '../src/context/AuthContext';
 import { isConfigured } from '../src/lib/supabase';
+import { startSyncEngine } from '../src/lib/sync';
 function Gate() {
   const { session, loading, locked, unlock } = useAuth();
   const { colors, resolved } = useTheme();
@@ -31,6 +32,9 @@ function Gate() {
     </Stack></>;
 }
 export default function RootLayout() {
+  // Offline sync engine: uploads queued documents when connectivity returns
+  // or the app comes back to the foreground. Started exactly once.
+  React.useEffect(() => { startSyncEngine(); }, []);
   return <SafeAreaProvider><ThemeProvider><AuthProvider><Gate /></AuthProvider></ThemeProvider></SafeAreaProvider>;
 }
 export { isConfigured };

@@ -4,12 +4,13 @@ import { useRouter } from 'expo-router';
 import { Screen, Field, DocRow, EmptyState, Loading, ErrorText, ConfigBanner } from '../src/components/ui';
 import { useTheme } from '../src/context/ThemeContext';
 import { isConfigured } from '../src/lib/supabase';
-import { listDocuments, DocumentItem } from '../src/services/documents';
+import { listDocuments, onDocsChanged, LocalDocument } from '../src/services/documents';
 import { filterDocuments } from '../src/lib/search';
 export default function Search() {
   const { colors } = useTheme(); const router = useRouter();
-  const [q, setQ] = useState(''); const [docs, setDocs] = useState<DocumentItem[]>([]); const [loading, setLoading] = useState(true); const [err, setErr] = useState<string | null>(null);
+  const [q, setQ] = useState(''); const [docs, setDocs] = useState<LocalDocument[]>([]); const [loading, setLoading] = useState(true); const [err, setErr] = useState<string | null>(null);
   useEffect(() => { if (!isConfigured) { setLoading(false); return; } listDocuments().then(setDocs).catch((e: any) => setErr(e.message)).finally(() => setLoading(false)); }, []);
+  useEffect(() => onDocsChanged(setDocs), []);
   const shown = filterDocuments(docs, q);
   return <Screen>
     <View style={{ flexDirection: 'row', alignItems: 'center' }}>
