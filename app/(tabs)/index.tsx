@@ -3,6 +3,7 @@ import { Pressable, RefreshControl, ScrollView, Text, View } from 'react-native'
 import { useFocusEffect, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Screen, Chip, DocRow, FolderRow, EmptyState, Loading, ErrorText, ConfigBanner } from '../../src/components/ui';
+import { AdBanner } from '../../src/components/AdBanner';
 import { useTheme } from '../../src/context/ThemeContext';
 import { isConfigured } from '../../src/lib/supabase';
 import { listDocuments, folderCounts, onDocsChanged, LocalDocument } from '../../src/services/documents';
@@ -22,7 +23,7 @@ export default function Home() {
   React.useEffect(() => onDocsChanged(setDocs), []);
   const counts = folderCounts(docs, FOLDERS);
   const recent = filterDocuments(docs, '', chip).slice(0, 5);
-  return <Screen><ScrollView refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(); }} />}>
+  return <Screen><View style={{ flex: 1 }}><ScrollView refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(); }} />}>
     <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
       <Text style={{ color: colors.text, fontSize: 24, fontWeight: '800' }}>DocVault</Text>
       <View style={{ flexDirection: 'row', alignItems: 'center' }}>
@@ -39,5 +40,5 @@ export default function Home() {
       <Text style={{ color: colors.text, fontSize: 16, fontWeight: '700' }}>Recent Files</Text>
       <Pressable onPress={() => router.push('/(tabs)/files')}><Text style={{ color: colors.muted, fontSize: 13 }}>See all</Text></Pressable></View>
     {loading ? <Loading /> : recent.length === 0 ? <EmptyState title="No documents yet" subtitle="Tap + to upload your first document." /> : recent.map((d, i) => <DocRow key={d.id} index={i} doc={d} onPress={() => router.push(`/document/${d.id}`)} />)}
-  </ScrollView></Screen>;
+  </ScrollView><AdBanner /></View></Screen>;
 }

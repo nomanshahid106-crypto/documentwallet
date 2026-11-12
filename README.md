@@ -50,6 +50,13 @@ DocVault is **offline-first**: the phone is not just a window onto the cloud, it
 - **Cloud tab shows the truth.** Connection (Online/Offline), how many documents are synced, how many are pending, when the last successful sync happened, and a Sync Now button.
 - **Deleting offline works too.** The document disappears immediately and the cloud copy is deleted on the next sync.
 
+## Ads (AdMob)
+- One banner, **Home screen only** (`src/components/AdBanner.tsx`, pinned under the Home content). No other screen shows ads.
+- Banner ad unit ID (owner-provided): `ca-app-pub-5906273058714323/5756219436` — kept in `src/lib/ads.ts`.
+- **To switch ads ON, an AdMob App ID is also required** (AdMob console → the DocVault app → App settings → App ID; format `ca-app-pub-XXXX~YYYY` — note the `~`). Then: (1) fill `ADMOB_ANDROID_APP_ID` in `src/lib/ads.ts`, (2) add the config plugin to `app.json` → `plugins`: `["react-native-google-mobile-ads", { "androidAppId": "<APP_ID>", "iosAppId": "<IOS_APP_ID_IF_ANY>" }]`, (3) rebuild with EAS (ads are native — they never appear in Expo Go). Until the App ID exists the banner component deliberately renders nothing, so the app can never crash on a missing ads manifest entry.
+- Development builds automatically load **Google's official test banner**, never the real unit, so testing can't generate invalid traffic on the owner's account. Release builds use the real unit ID.
+- If an ad fails to load, the banner hides itself instead of leaving an empty box.
+
 ## Security model
 - **Access:** Supabase Auth (email/password, password reset by email, optional Google). Every document row and storage object is restricted by Row Level Security / storage policies to its owner (`auth.uid()`). Other users cannot list, read, update or delete your files.
 - **File access:** files live in a **private** bucket — there are no public URLs. The app opens/previews/downloads through **short-lived signed URLs** (60 s for preview, 5 min for an explicit download/share).
